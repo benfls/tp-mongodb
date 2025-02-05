@@ -12,6 +12,14 @@ $manager = getMongoDbManager();
 // petite aide : https://github.com/VSG24/mongodb-php-examples
 
 if (!empty($_POST)) {
+    $user = ['titre' => $_POST['title'],
+        'auteur' => $_POST['author'],
+        'siecle' => $_POST['century'],
+        'edition' => $_POST['edition'],
+        'langue' => $_POST['language'],
+        'cote' => $_POST['cote']];
+
+    $manager->selectCollection('tp')->insertOne($user);
     // @todo coder l'enregistrement d'un nouveau livre en lisant le contenu de $_POST
 } else {
 // render template
