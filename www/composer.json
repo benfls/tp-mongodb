@@ -3,7 +3,8 @@
         "mongodb/mongodb": "^1.5",
         "twig/twig": "^3.5",
         "vlucas/phpdotenv": "^5.5",
-      "ext-mongodb": "*"
+      "ext-mongodb": "*",
+        "predis/predis": "^2.3"
     },
     "config": {
         "platform": {

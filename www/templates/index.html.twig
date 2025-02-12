@@ -3,7 +3,13 @@
 {% block title %}Index{% endblock %}
 {% block content %}
 <h1>Liste des manuscrits de la bibliothèque du Patrimoine de Clermont Auvergne Métropole</h1>
-<table>
+    <!-- Formulaire de recherche -->
+    <form method="get" action="">
+        <input type="text" name="search" placeholder="Rechercher un livre..." value="{{ searchQuery }}">
+        <button type="submit">🔍 Rechercher</button>
+    </form>
+
+    <table>
     <tr>
         <th>Référence</th>
         <th>Titre</th>
@@ -19,4 +25,18 @@
     </tr>
     {% endfor %}
 </table>
+<!-- Pagination -->
+{% if totalPages > 1 %}
+    <div>
+        {% if page > 1 %}
+            <a href="?page={{ page - 1 }}">⬅ Précédent</a>
+        {% endif %}
+
+        Page {{ page }} / {{ totalPages }}
+
+        {% if page < totalPages %}
+            <a href="?page={{ page + 1 }}">Suivant ➡</a>
+        {% endif %}
+    </div>
+{% endif %}
 {% endblock %}

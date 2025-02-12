@@ -6,21 +6,35 @@
     <title>Modifier un document</title>
 </head>
 <body>
+
 <h2>Modifier le document</h2>
 
-<form action="edit.php" method="post">
+<form action="update.php" method="post">
     <input type="hidden" name="id" value="{{ entity._id }}">
 
-    <label for="name">Nom :</label>
-    <input type="text" id="name" name="name" value="{{ entity.name }}" required>
+    <label for="title">Titre :</label>
+    <input type="text" id="title" name="title" size="100" value="{{ entity.titre }}" required>
 
-    <label for="email">Email :</label>
-    <input type="email" id="email" name="email" value="{{ entity.email }}" required>
+    <label for="author">Auteur :</label>
+    <input type="text" id="author" name="author" size="50" value="{{ entity.auteur }}" required>
+
+    <label for="century">Siècle :</label>
+    <input type="number" id="century" name="century" value="{{ entity.siecle }}">
+
+    <label for="edition">Edition :</label>
+    <input type="text" id="edition" name="edition" value="{{ entity.edition }}">
+
+    <label for="language">Langue :</label>
+    <input type="text" id="language" name="language" value="{{ entity.langue }}">
+
+    <label for="cote">Cote :</label>
+    <input type="text" id="cote" name="cote" value="{{ entity.cote }}">
 
     <button type="submit">Modifier</button>
 </form>
 
 <br>
 <a href="list.php">Retour à la liste</a>
+
 </body>
 </html>

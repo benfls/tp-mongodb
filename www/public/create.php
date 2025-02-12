@@ -20,6 +20,11 @@ if (!empty($_POST)) {
         'cote' => $_POST['cote']];
 
     $manager->selectCollection('tp')->insertOne($user);
+    // Redirection vers la liste après 2 secondes
+    echo "Document ajouter avec succès.";
+
+    header("Refresh:2; url=list.php");
+    exit;
     // @todo coder l'enregistrement d'un nouveau livre en lisant le contenu de $_POST
 } else {
 // render template

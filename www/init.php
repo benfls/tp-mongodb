@@ -9,6 +9,7 @@ require_once __DIR__.'/vendor/autoload.php';
 use MongoDB\Database;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
+use Predis\Client;
 
 // env configuration
 (Dotenv\Dotenv::createImmutable(__DIR__))->load();
@@ -25,3 +26,25 @@ function getMongoDbManager(): Database
     return $client->selectDatabase($_ENV['MDB_DB']);
 }
 
+function getRedisClient()
+{
+    // Vérifier si Redis est activé
+    if ($_ENV['REDIS_ENABLE'] !== 'true') {
+        return null;
+    }
+
+    try {
+        // Initialiser et retourner le client Redis
+        $redis = new Client([
+            'scheme' => 'tcp',
+            'host'   => $_ENV['REDIS_HOST'],
+            'port'   => $_ENV['REDIS_PORT']
+        ]);
+
+        return $redis;
+
+    } catch (Exception $e) {
+        error_log("Erreur de connexion à Redis : " . $e->getMessage());
+        return null;
+    }
+}

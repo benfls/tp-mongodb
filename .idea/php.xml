@@ -24,6 +24,7 @@
       <path value="$PROJECT_DIR$/www/vendor/symfony/polyfill-mbstring" />
       <path value="$PROJECT_DIR$/www/vendor/symfony/polyfill-ctype" />
       <path value="$PROJECT_DIR$/www/vendor/composer" />
+      <path value="$PROJECT_DIR$/www/vendor/predis/predis" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.3">
