@@ -19,13 +19,13 @@ if (!empty($_POST)) {
         'langue' => $_POST['language'],
         'cote' => $_POST['cote']];
 
-    $manager->selectCollection('tp')->insertOne($user);
-    // Redirection vers la liste après 2 secondes
-    echo "Document ajouter avec succès.";
+    $result = $manager->selectCollection('tp')->insertOne($user);
+    $insertedId = $result->getInsertedId();
 
-    header("Refresh:2; url=list.php");
+    // Retourner l'ID du document inséré au format JSON
+    header('Content-Type: application/json');
+    echo $insertedId;
     exit;
-    // @todo coder l'enregistrement d'un nouveau livre en lisant le contenu de $_POST
 } else {
 // render template
     try {

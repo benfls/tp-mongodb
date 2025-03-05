@@ -17,12 +17,10 @@ export default function () {
     // 🔹 1. Affichage de la liste des livres (Page 1)
     let listResponse = http.get(`${baseUrl}/index.php`, { headers: { Accepts: "application/json" } });
     check(listResponse, { "Liste des livres chargée": (r) => r.status === 200 });
-    sleep(1);
 
     // 🔹 2. Affichage de la page 30
     let page30Response = http.get(`${baseUrl}/index.php?page=4`, { headers: { Accepts: "application/json" } });
     check(page30Response, { "Page 30 affichée": (r) => r.status === 200 });
-    sleep(1);
 
     // 🔹 3. Consultation des détails d’un livre (On prend un ID aléatoire)
     let bookIdMatch = listResponse.body.match(/get\.php\?id=([a-f0-9]+)/i);
@@ -32,32 +30,31 @@ export default function () {
         let detailsResponse = http.get(`${baseUrl}/get.php?id=${bookId}`);
         check(detailsResponse, { "Détails du livre chargés": (r) => r.status === 200 });
     }
-    sleep(1);
 
     // 🔹 4. Retour à la liste
     let returnToListResponse = http.get(`${baseUrl}/index.php`);
     check(returnToListResponse, { "Retour à la liste réussi": (r) => r.status === 200 });
-    sleep(1);
 
     // 🔹 5. Ajout d’un livre (POST request)
     let newBook = {
-        titre: "K6 Test Book",
-        auteur: "Test Author"
+        title: "K6 Test Book",
+        author: "Test Author",
+        edition: 'La montagne',
+        language:'français',
+        cote: "ufzhuifg",
+        century: 2023
     };
     let addBookResponse = http.post(`${baseUrl}/create.php`, newBook);
-    check(addBookResponse, { "Livre ajouté avec succès": (r) => r.status === 201 });
+    check(addBookResponse, { "Livre ajouté avec succès": (r) => r.status === 200 });
 
-    let addedBook = JSON.parse(addBookResponse.body);
-    let addedBookId = addedBook._id;
-    sleep(1);
-    /*
+    let addedBookId = addBookResponse.body;
+    console.log('id: ', addedBookId);
+
     // 🔹 6. Consultation du livre ajouté
     let checkAddedBook = http.get(`${baseUrl}/get.php?id=${addedBookId}`);
     check(checkAddedBook, { "Consultation du livre ajouté réussie": (r) => r.status === 200 });
-    sleep(1);
 
     // 🔹 7. Suppression du livre
-    let deleteBookResponse = http.del(`${baseUrl}/delete.php?id=${addedBookId}`);
+    let deleteBookResponse = http.get(`${baseUrl}/delete.php?id=${addedBookId}`);
     check(deleteBookResponse, { "Livre supprimé avec succès": (r) => r.status === 200 });
-    sleep(1);*/
 }

@@ -133,5 +133,6 @@ services:
             - "8180:8080"
         networks:
             - local
+
 networks:
     local:
