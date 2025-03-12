@@ -48,7 +48,7 @@ export default function () {
     check(addBookResponse, { "Livre ajouté avec succès": (r) => r.status === 200 });
 
     let addedBookId = addBookResponse.body;
-    console.log('id: ', addedBookId);
+    // console.log('id: ', addedBookId);
 
     // 🔹 6. Consultation du livre ajouté
     let checkAddedBook = http.get(`${baseUrl}/get.php?id=${addedBookId}`);

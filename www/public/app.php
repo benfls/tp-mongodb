@@ -5,11 +5,12 @@ include_once '../init.php';
 use Twig\Error\LoaderError;
 use Twig\Error\RuntimeError;
 use Twig\Error\SyntaxError;
+use MongoDB\BSON\ObjectId;
 
 $twig = getTwig();
 $manager = getMongoDbManager();
 $collection = $manager->selectCollection('tp');
-$redis = getRedisClient();
+#$redis = getRedisClient();
 
 // Définir le nombre de livres par page
 $limit = 15;
@@ -18,48 +19,38 @@ $limit = 15;
 $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
 if ($page < 1) $page = 1;
 
-// Récupérer le terme de recherche
-$searchQuery = isset($_GET['search']) ? trim($_GET['search']) : '';
+// Récupérer les termes de recherche
+$searchTitre = isset($_GET['searchTitre']) ? trim($_GET['searchTitre']) : '';
+$searchAuteur = isset($_GET['searchAuteur']) ? trim($_GET['searchAuteur']) : '';
 
-// 🔥 Générer une clé de cache unique qui inclut la recherche
-$searchKey = empty($searchQuery) ? "all" : md5($searchQuery); // Clé de recherche unique
-$pageCacheKey = "page_cache_{$searchKey}_{$page}"; // Clé pour la page et la recherche
-$cacheListKey = "cached_pages"; // Liste FIFO des pages en cache
+//echo "Page actuelle : " . $page . "\n"; // Debug
+//echo "Titre de recherche : " . $searchTitre . "\n"; // Debug
+//echo "Auteur de recherche : " . $searchAuteur . "\n"; // Debug
 
-// 📌 Vérifier si la page est en cache Redis
-if ($redis && $redis->exists($pageCacheKey)) {
-    $cachedData = json_decode($redis->get($pageCacheKey), true);
 
-    //echo "Données chargées depuis le cache Redis.";
+// Appeler la fonction de recherche
+$bookIds = search($searchAuteur, $searchTitre);
 
-    echo $twig->render('index.html.twig', [
-        'list' => $cachedData['list'],
-        'page' => $page,
-        'totalPages' => $cachedData['totalPages'],
-        'searchQuery' => $searchQuery
-    ]);
-    exit;
-}
+//echo "Liste des documents récupérés : ";
+//print_r($bookIds); // Debug
+$bookIds = array_map(fn($id) => new ObjectId($id), $bookIds);
 
 // 🔍 Construire le filtre de recherche
 $filter = [];
-if (!empty($searchQuery)) {
-    $filter = [
-        '$or' => [
-            ['titre' => ['$regex' => $searchQuery, '$options' => 'i']],
-            ['auteur' => ['$regex' => $searchQuery, '$options' => 'i']],
-            ['_id' => ['$regex' => $searchQuery, '$options' => 'i']]
-        ]
-    ];
+if (!empty($bookIds)) {
+    $filter = ['_id' => ['$in' => $bookIds]];
 }
 
+//echo "Filtre génerer : ";
+//print_r($filter);
+// Debug
 // 🔄 Récupérer les documents avec filtre et pagination
-$cursor = $collection->find($filter, [
-    'limit' => $limit,
-    'skip'  => ($page - 1) * $limit
-]);
+$cursor = $collection->find($filter);
 
 $list = iterator_to_array($cursor);
+
+//echo "Liste des documents récupérés : ";
+//print_r($list); // Debug
 
 // ✅ Convertir `_id` en string pour éviter les erreurs avec Twig
 foreach ($list as &$document) {
@@ -70,38 +61,19 @@ foreach ($list as &$document) {
 unset($document); // Éviter les bugs de référence
 
 // 🔢 Calculer le nombre total de pages
-$totalDocuments = $collection->countDocuments($filter);
+$totalDocuments = count($list);
 $totalPages = ceil($totalDocuments / $limit);
 
-// 🔥 Stocker la page dans Redis (10 minutes)
-if ($redis) {
-    $cacheData = [
-        'list' => $list,
-        'page' => $page,
-        'totalPages' => $totalPages
-    ];
-
-    $redis->setex($pageCacheKey, 600, json_encode($cacheData)); // Stocke la page avec la recherche
-
-    // Ajouter la page actuelle à la liste FIFO
-    $redis->lpush($cacheListKey, $pageCacheKey);
-
-    // Si plus de 3 pages sont stockées, supprimer l'ancienne
-    if ($redis->llen($cacheListKey) > 3) {
-        $oldestPage = $redis->rpop($cacheListKey);
-        if ($oldestPage) {
-            $redis->del($oldestPage);
-        }
-    }
-}
+//echo "Nombre total de pages : " . $totalPages . "\n"; // Debug
 
 // 🎨 Affichage avec Twig
 try {
     echo $twig->render('index.html.twig', [
-        'list' => $list,
+        'list' => array_slice($list, ($page - 1) * $limit, $limit),
         'page' => $page,
         'totalPages' => $totalPages,
-        'searchQuery' => $searchQuery
+        'searchTitre' => $searchTitre,
+        'searchAuteur' => $searchAuteur
     ]);
 } catch (LoaderError | RuntimeError | SyntaxError $e) {
     echo "Erreur Twig : " . $e->getMessage();
