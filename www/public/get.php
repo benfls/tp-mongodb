@@ -11,58 +11,72 @@ $twig = getTwig();
 $manager = getMongoDbManager();
 $redis = getRedisClient();
 
+// ====== Configuration : Activer ou désactiver le cache ======
+$useCache = true; // <<< METS FALSE ICI POUR DÉSACTIVER LE CACHE
+
 // Vérifier si Redis est activé
-if (!$redis) {
+if ($useCache && !$redis) {
     echo "Redis est désactivé ou inaccessible.";
     exit;
 }
 
-// @todo implementez la récupération des données d'une entité et la passer au template
-// petite aide : https://github.com/VSG24/mongodb-php-examples
+// Récupération de l'ID du livre
 $id = new ObjectId($_GET['id']);
-$cacheKey = "book:$id"; // Clé Redis pour ce livre
+$entity = null;
 
-// Vérifier si le livre est déjà en cache
-if ($redis->exists($cacheKey)) {
-    $entity = json_decode($redis->get($cacheKey), true);
-    //echo "Données chargées depuis le cache Redis.<br>";
-} else {
+// === 1️⃣ : Vérification cache des livres récents ===
+if ($useCache) {
+    $recentBooksKey = "recent_books";
+    $recentBooks = json_decode($redis->get($recentBooksKey), true) ?? [];
+
+    // Vérifier si le livre est dans les livres récents
+    foreach ($recentBooks as $book) {
+        if ($book['_id'] === (string)$id) {
+            $entity = $book;
+            break;
+        }
+    }
+}
+
+// === 2️⃣ : Si pas en cache, on récupère depuis MongoDB ===
+if (!$entity) {
     $entity = (array)$manager->selectCollection('tp')->findOne(['_id' => $id]);
-    // Vérifier si on a bien trouvé un document
     if (!$entity) {
         echo "Livre non trouvé.";
         exit;
     }
 
-    // Convertir `_id` en string
     $entity['_id'] = (string) $entity['_id'];
-
-    // Stocker le livre en cache (expire après 30 minutes)
-    $redis->setex($cacheKey, 1800, json_encode($entity));
 }
 
-// ✅ Ajouter aux derniers livres consultés
-$recentBooksKey = "recent_books";
-$maxRecent = 5; // On garde en mémoire les 5 derniers livres
+// === 3️⃣ : Gestion des derniers livres consultés ===
+if ($useCache) {
+    $maxRecent = 5;
 
-// Récupérer la liste actuelle des livres consultés
-$recentBooks = json_decode($redis->get($recentBooksKey), true) ?? [];
+    // Supprimer si déjà présent
+    foreach ($recentBooks as $index => $book) {
+        if ($book['_id'] === $entity['_id']) {
+            unset($recentBooks[$index]);
+            break;
+        }
+    }
 
-// Supprimer l'ancien si déjà présent
-$recentBooks = array_filter($recentBooks, fn($b) => $b['_id'] !== $entity['_id']);
+    // Ajouter au début
+    array_unshift($recentBooks, $entity);
 
-// Ajouter le livre au début
-array_unshift($recentBooks, $entity);
+    // Garder les 5 derniers
+    $recentBooks = array_slice($recentBooks, 0, $maxRecent);
 
-// Garder uniquement les $maxRecent derniers
-$recentBooks = array_slice($recentBooks, 0, $maxRecent);
+    // Sauvegarder en cache
+    $redis->set($recentBooksKey, json_encode($recentBooks));
+}
 
-// Sauvegarder la liste mise à jour en cache
-$redis->set($recentBooksKey, json_encode($recentBooks));
-
-// render template
+// === 4️⃣ : Render ===
 try {
-    echo $twig->render('get.html.twig', ['entity' => $entity, 'recentBooks' => $recentBooks]);
+    echo $twig->render('get.html.twig', [
+        'entity' => $entity,
+        'recentBooks' => $recentBooks
+    ]);
 } catch (LoaderError|RuntimeError|SyntaxError $e) {
     echo $e->getMessage();
 }
